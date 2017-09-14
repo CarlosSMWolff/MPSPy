@@ -184,7 +184,9 @@ def GammaLambdaIni(wavefunctionVector,dvector,chi):
 		
 	lambdaVectorIni = []
 	for site in range(nsites+1):
-		lambdaVectorIni.append(np.array([1,0]))
+		lambdaSite = np.zeros(chi)
+		lambdaSite[0] = 1
+		lambdaVectorIni.append(lambdaSite))
 		
 	return [gammaVectorIni,lambdaVectorIni]
     
