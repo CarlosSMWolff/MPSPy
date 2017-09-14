@@ -551,5 +551,122 @@ def AcorrelationsTime(correlationGrid):
         
     return acorrelationMatrixTime
     
+    
+def HamiltonianTB(avec,apvec,gvector,RWA):
+	""" Create a Hamiltonian describing nearest neighbour interactions with couplings given by gvector
+	
+	:param gvector: gvector[i] gives the coupling rate between the i and i+1 site
+	:param RWA: RWA[i] tells if random wave approximation should be used between the i and i+1 site
+	 """
+	nsites = len(gvector)
+	Hlist = []
+	
+	Idavec = []
+	for i in range(nsites):
+		sizeLocalHilbert = avec[i].shape[1]
+		Idavec.append(np.eye(sizeLocalHilbert))
+	
+	for i in range(nsites-1):
+		if RWA[i]==1:
+			H = gvector[i]*(kron(avec[i],apvec[i+1])+ kron(apvec[i],avec[i+1])+kron(avec[i],avec[i+1])+ kron(apvec[i],apvec[i+1]))
+		else:
+			H = gvector[i]*(kron(avec[i],apvec[i+1])+ kron(apvec[i],avec[i+1]))
+		Hlist.append(H)
+
+	return Hlist
+
+def HamiltonianFree(avec,apvec,wvector):
+	""" Create a Hamiltonian describing the free energy of each site (expressed as a two-site operation)
+	
+	:param wvector: wvector[i] gives the free energy of the i-th site
+	"""
+	nsites = len(wvector)
+	Hlist = []
+	
+	Idavec = []
+	for i in range(nsites):
+		sizeLocalHilbert = avec[i].shape[1]
+		Idavec.append(np.eye(sizeLocalHilbert))
+	
+	for i in range(nsites-1):
+		if i==0:
+		    H = wvector[i]*kron(dot(apvec[i],avec[i]),Idavec[i+1])+0.5*wvector[i+1]*kron(Idavec[i],dot(apvec[i+1],avec[i+1]))
+		    Hlist.append(H)
+		else:
+		    H= 0.5*wvector[i]*kron(dot(apvec[i],avec[i]),Idavec[i+1]) + 0.5*wvector[i+1]*kron(Idavec[i],dot(apvec[i+1],avec[i+1]))
+		    Hlist.append(H)
+
+        
+	Hlist[nsites-2] = Hlist[nsites-2] + 0.5*wvector[nsites-1]*kron(Idavec[nsites-2],dot(apvec[nsites-1],avec[nsites-1]))
+
+	return Hlist
+
+def AddLocalH(Hlocal,site,Hlist):
+	""" Add a local Hamiltonian into the list of Hamiltonians
+		ISSUES TO FIX: BADLY DEFINED FOR LESS THAN 3 SITES
+	"""
+	nsites = len(Hlist)
+	if nsites <3:
+		print("AddLocalH won't work properly with less than 3 sites. I'm sorry, I will fix that in the future")
+
+	# Note: The first and last sites of the Hamiltonian will only be updated once per time step, so I need to define them differently
+	if site ==0:
+		sizeRight = avec[site+1].shape[1]
+		IdRight=np.eye(sizeRight)
+		# If it's the first site, we just write it as (Hlocal)_site \otimes (Hlist[site+1])_site+1
+		Hlist[site] = Hlist[site] + kron(Hlocal,IdRight)
+		
+	elif (site == nsites-1) or (site == -1):
+		sizeLeft = avec[site-1].shape[1]
+		IdLeft = np.eye(sizeLeft)
+		# If it's the last site, we just write it as (Hlist[site-1])_site+-1\otimes (Hlocal)_site
+		Hlist[site-1] = Hlist[site-1] + kron(IdLeft,Hlocal)
+	else:
+		sizeRight = avec[site+1].shape[1]
+		sizeLeft = avec[site-1].shape[1]
+		IdLeft = np.eye(sizeLeft)
+		IdRight= np.eye(sizeRight)		
+		
+		Hlist[site-1] = Hlist[site-1] + 0.5*kron(IdLeft,Hlocal) 
+		Hlist[site] = Hlist[site] + 0.5*kron(Hlocal,IdRight)
+
+
+	return Hlist
+
+def SumHamiltonians(Hlist1,Hlist2):
+	""" Add a local Hamiltonian into the list of Hamiltonians
+		ISSUES TO FIX: BADLY DEFINED FOR LESS THAN 3 SITES
+	"""
+	nsites = len(Hlist1)
+	Hlist = []
+	
+	for i in range(nsites):
+		Hlist.append(Hlist1[i]+Hlist2[i])
+
+	return Hlist
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
     
