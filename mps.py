@@ -1,3 +1,10 @@
+"""
+Module to compute dynamics of quantum systems with Matrix Product States Techniques
+
+Author: Carlos Sánchez Muñoz
+Date of creation: March 2017
+ """
+
 import numpy as np
 from numpy import transpose, dot, reshape, sqrt,conjugate
 import time
@@ -125,29 +132,61 @@ def CreateAnnihilationList(ntrun):
         avec.append(Annihilation(ntrun[i]+1))
     return avec
     
+def WaveFunctionFock(dvector,siteFock,fockValue):
+	"""Provide a wavefunction vector in which one specific site is in an excited (Fock) state and the rest are in vacuum (Fock zero).
+	
+	:param siteFock: Index of the site which is excited
+	:param fockValue: Number of excitations in the site, i.e, 1 for a cavity in a 1-photon state.
+	"""    
+	
+	nsites = len(dvector)
+	wavefunctionVector = []
+	
+	for site in range(nsites):
+		vec = np.zeros(dvector[site])
+		if (site==siteFock):
+			vec[fockValue]=1
+		else:
+			vec[0]=1
+		wavefunctionVector.append(vec)
+	
+	
+	return wavefunctionVector
+    
+def WaveFunctionSameForAll(dvector):
+	"""Provide a wavefunction vector in which all the sites are in superposition of all the states with equal probability. 
+	This is intended to use as an initial state for ground-state search.
 
-def GammaLambdaIni(siteFock,dvector,chi):
-    nsites = len(dvector)
-    coefficient = []
-    for site in range(nsites):
-        vec = np.zeros(dvector[site])
-        if (site==siteFock):
-            vec[1]=1
-        else:
-            vec[0]=1
-        coefficient.append(vec)
-        
-    gammaVectorIni = []
-    for site in range(nsites):
-        gamma = np.zeros([chi,dvector[site],chi])
-        gamma[0,:,0]=coefficient[site]
-        gammaVectorIni.append(gamma)
-        
-    lambdaVectorIni = []
-    for site in range(nsites+1):
-        lambdaVectorIni.append(np.array([1,0]))
-        
-    return [gammaVectorIni,lambdaVectorIni]
+	"""    
+	nsites = len(dvector)
+	wavefunctionVector = []
+	
+	for site in range(nsites):
+		vec = np.full(dvector[site],1/sqrt(dvector[site]))
+		wavefunctionVector.append(vec)
+	
+	return wavefunctionVector
+
+
+def GammaLambdaIni(wavefunctionVector,dvector,chi):
+	"""Provide a MPS to use as initial state based on a tensor product of pure wavefunctions in each site
+	
+	:param wavefunctionVector: list of nsites with dvector[i] coefficients in the i-th site describing the local wavefunction 
+	"""
+
+	nsites = len(dvector)
+	gammaVectorIni = []
+
+	for site in range(nsites):
+		gamma = np.zeros([chi,dvector[site],chi])
+		gamma[0,:,0]=wavefunctionVector[site]
+		gammaVectorIni.append(gamma)
+		
+	lambdaVectorIni = []
+	for site in range(nsites+1):
+		lambdaVectorIni.append(np.array([1,0]))
+		
+	return [gammaVectorIni,lambdaVectorIni]
     
 
 def opGamma(op,Gamma):
