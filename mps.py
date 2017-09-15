@@ -17,44 +17,15 @@ from scipy.sparse import csr_matrix, csc_matrix
 def kron(A,B):
     return csc_matrix(scipy.sparse.kron(A,B))
 
-def FormTheta(lambdaLeft,lambdaCent,lambdaRight,gammaLeft,gammaRight,chi,d1,d2):
-    theta = np.zeros([chi,d1,d2,chi],dtype=complex)
+def ThetaNew(operatorRS,lambdaLeft,lambdaCent,lambdaRight,gammaLeft,gammaRight,chi,d1,d2):
 
-    for alpha1 in range(chi):
-        for alpha2 in range(chi):
-            for gamma in range(chi):
-                theta[alpha1,:,:,alpha2] += lambdaLeft[alpha1]*lambdaCent[gamma]*lambdaRight[alpha2]*\
-                dot(transpose(gammaLeft[alpha1,:,gamma][np.newaxis]),gammaRight[gamma,:,alpha2][np.newaxis])
-    return theta
-    
-    
-def ThetaNewOld(operator,theta):
-    dims = theta.shape
-    chi = dims[0]
-    d1 = dims[1]
-    d2 = dims[2]
-    thetaNew = np.zeros([chi,d1,d2,chi],dtype=complex)
-    for alpha1 in range(chi):
-        for i in range(d1):
-            for j in range(d2):
-                for alpha2 in range(chi):
-                    for ii in range(d1):
-                        for jj in range(d2):
-                            thetaNew[alpha1,i,j,alpha2]+= operator[i,j,ii,jj]*theta[alpha1,ii,jj,alpha2]
-    return thetaNew
-    
-    
-def ThetaNew(operatorRS,theta):
-    dims = theta.shape
-    chi = dims[0]
-    d1 = dims[1]
-    d2 = dims[2]
-    thetaNew = np.zeros([chi,d1,d2,chi],dtype=complex)
-    for alpha1 in range(chi):
-        for alpha2 in range(chi):
-            thetaflat = (theta[alpha1,:,:,alpha2]).flatten()
-            thetaNew[alpha1,:,:,alpha2] = (operatorRS.dot(thetaflat)).reshape(d1,d2)
-    return thetaNew
+	thetaNew = np.zeros([chi,d1,d2,chi],dtype=complex)
+	for alpha1 in range(chi):
+		for alpha2 in range(chi):
+			theta =lambdaLeft[alpha1]*lambdaRight[alpha2]*dot(gammaLeft[alpha1,:,:],((lambdaCent.reshape((chi,1)))*gammaRight[:,:,alpha2]))
+			thetaflat = theta.flatten()
+			thetaNew[alpha1,:,:,alpha2] = (operatorRS.dot(thetaflat)).reshape(d1,d2)
+	return thetaNew
     
     
 def ThetaReshape(theta):
@@ -74,10 +45,8 @@ def ApplyLocal2SiteOp(operator,lambdaLeft,lambdaCent,lambdaRight,gammaLeft,gamma
     dim2 = gammaRight.shape
     d2 = dim2[1]
     
-    # Create theta
-    theta=FormTheta(lambdaLeft,lambdaCent,lambdaRight,gammaLeft,gammaRight,chi,d1,d2)
     # Apply operator
-    thetaNew = ThetaNew(operator,theta)
+    thetaNew = ThetaNew(operator,lambdaLeft,lambdaCent,lambdaRight,gammaLeft,gammaRight,chi,d1,d2)
     thetaRS = ThetaReshape(thetaNew)
     
     #SVD decomposition    
