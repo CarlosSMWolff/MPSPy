@@ -730,25 +730,27 @@ def MPSTimeEvolutionCorrelationHT(lambdaVectorIni,gammaVectorIni,Hstat,HlocalTim
 		if paramtVector[q] != 0:
 			Hintsite = AddLocalH(paramtVector[q]*HlocalTime,siteLocalH,Hstat,dvector)
 
-			expH1List = []
-			for site in range(nsites-1):
-				matrixExp = expm(-1j*dt/2*thetaCons*Hintsite[site])
-				expH1List.append(matrixExp)
+			if siteLocalH ==0:
+				expH1List[siteLocalH] =  expm(-1j*dt/2*thetaCons*Hintsite[siteLocalH])
+				expH2List[siteLocalH] =  expm(-1j*dt*thetaCons*Hintsite[siteLocalH])
+				expH3List[siteLocalH] =  expm(-1j*dt/2*(1-thetaCons)*Hintsite[siteLocalH])
+				expH4List[siteLocalH] =  expm(-1j*dt*(1-2*thetaCons)*Hintsite[siteLocalH])
+	
+			elif (siteLocalH == nsites-1) or (siteLocalH == -1):
+				expH1List[siteLocalH-1] =  expm(-1j*dt/2*thetaCons*Hintsite[siteLocalH-1])
+				expH2List[siteLocalH-1] =  expm(-1j*dt*thetaCons*Hintsite[siteLocalH-1])
+				expH3List[siteLocalH-1] =  expm(-1j*dt/2*(1-thetaCons)*Hintsite[siteLocalH-1])
+				expH4List[siteLocalH-1] =  expm(-1j*dt*(1-2*thetaCons)*Hintsite[siteLocalH-1])
+			else:
+				expH1List[siteLocalH] =  expm(-1j*dt/2*thetaCons*Hintsite[siteLocalH])
+				expH2List[siteLocalH] =  expm(-1j*dt*thetaCons*Hintsite[siteLocalH])
+				expH3List[siteLocalH] =  expm(-1j*dt/2*(1-thetaCons)*Hintsite[siteLocalH])
+				expH4List[siteLocalH] =  expm(-1j*dt*(1-2*thetaCons)*Hintsite[siteLocalH])	
 
-			expH2List = []
-			for site in range(nsites-1):
-				matrixExp = expm(-1j*dt*thetaCons*Hintsite[site])
-				expH2List.append(matrixExp)
-
-			expH3List = []
-			for site in range(nsites-1):
-				matrixExp = expm(-1j*dt/2*(1-thetaCons)*Hintsite[site])
-				expH3List.append(matrixExp)
-
-			expH4List = []
-			for site in range(nsites-1):
-				matrixExp = expm(-1j*dt*(1-2*thetaCons)*Hintsite[site])
-				expH4List.append(matrixExp)        
+				expH1List[siteLocalH-1] =  expm(-1j*dt/2*thetaCons*Hintsite[siteLocalH-1])
+				expH2List[siteLocalH-1] =  expm(-1j*dt*thetaCons*Hintsite[siteLocalH-1])
+				expH3List[siteLocalH-1] =  expm(-1j*dt/2*(1-thetaCons)*Hintsite[siteLocalH-1])
+				expH4List[siteLocalH-1] =  expm(-1j*dt*(1-2*thetaCons)*Hintsite[siteLocalH-1])
 
 	return [correlationGridTime,meanxGridTime,errorTime,gammaVector,lambdaVector]
 
