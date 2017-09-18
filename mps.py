@@ -263,9 +263,6 @@ def CorrelationGridMPS(Op1,Op2,gammaVectorTime,lambdaVectorTime):
     return [correlationGrid,meanxGrid]
     
 
-
-
-    
 def MPSTimeEvolutionCorrelation(lambdaVectorIni,gammaVectorIni,Hintsite,Op1,Op2,tini,tfin,nt,nstore,dvector,chi):
     
     tgrid = np.linspace(tini,tfin,nt)
@@ -572,7 +569,7 @@ def HamiltonianFree(avec,apvec,wvector):
 
 	return Hlist
 
-def AddLocalH(Hlocal,site,Hlist):
+def AddLocalH(Hlocal,site,Hlist,dvector):
 	""" Add a local Hamiltonian into the list of Hamiltonians
 		ISSUES TO FIX: BADLY DEFINED FOR LESS THAN 3 SITES
 	"""
@@ -582,19 +579,19 @@ def AddLocalH(Hlocal,site,Hlist):
 
 	# Note: The first and last sites of the Hamiltonian will only be updated once per time step, so I need to define them differently
 	if site ==0:
-		sizeRight = avec[site+1].shape[1]
+		sizeRight = dvector[site+1]
 		IdRight=np.eye(sizeRight)
 		# If it's the first site, we just write it as (Hlocal)_site \otimes (Hlist[site+1])_site+1
 		Hlist[site] = Hlist[site] + kron(Hlocal,IdRight)
 		
 	elif (site == nsites-1) or (site == -1):
-		sizeLeft = avec[site-1].shape[1]
+		sizeLeft = dvector[site-1]
 		IdLeft = np.eye(sizeLeft)
 		# If it's the last site, we just write it as (Hlist[site-1])_site+-1\otimes (Hlocal)_site
 		Hlist[site-1] = Hlist[site-1] + kron(IdLeft,Hlocal)
 	else:
-		sizeRight = avec[site+1].shape[1]
-		sizeLeft = avec[site-1].shape[1]
+		sizeRight = dvector[site+1]
+		sizeLeft = dvector[site-1]
 		IdLeft = np.eye(sizeLeft)
 		IdRight= np.eye(sizeRight)		
 		
@@ -622,6 +619,138 @@ def SumHamiltonians(Hlist1,Hlist2):
 
 
 
+def MPSTimeEvolutionCorrelationHT(lambdaVectorIni,gammaVectorIni,Hstat,HlocalTime,siteLocalH,paramtVector,Op1,Op2,tini,tfin,nt,nstore,dvector,chi):
+
+	tgrid = np.linspace(tini,tfin,nt)
+	dt = tgrid[1]-tgrid[0]
+	nstoreindex = np.linspace(0,nt-1,nstore).astype(int)
+	nsites = len(dvector)
+
+	thetaCons = 1/(2-2**(1/3))
+
+	Hintsite = AddLocalH(paramtVector[0]*HlocalTime,siteLocalH,Hstat,dvector)
+
+	expH1List = []
+	for site in range(nsites-1):
+		matrixExp = expm(-1j*dt/2*thetaCons*Hintsite[site])
+		expH1List.append(matrixExp)
+
+	expH2List = []
+	for site in range(nsites-1):
+		matrixExp = expm(-1j*dt*thetaCons*Hintsite[site])
+		expH2List.append(matrixExp)
+
+	expH3List = []
+	for site in range(nsites-1):
+		matrixExp = expm(-1j*dt/2*(1-thetaCons)*Hintsite[site])
+		expH3List.append(matrixExp)
+
+	expH4List = []
+	for site in range(nsites-1):
+		matrixExp = expm(-1j*dt*(1-2*thetaCons)*Hintsite[site])
+		expH4List.append(matrixExp)
+
+
+
+	# Initialize the vectors
+	gammaVector = list(gammaVectorIni[:]) 
+	lambdaVector = list(lambdaVectorIni[:])
+	gammaVectorTime = []
+	gammaVectorTime.append(list(gammaVector))
+	lambdaVectorTime = []
+	lambdaVectorTime.append(list(lambdaVector))
+	errorTime = []
+	errorTime.append(0)
+	correlationGridTime = np.zeros((nstore,nsites-1,nsites-1),dtype = complex)
+	meanxGridTime = np.zeros((nstore,nsites),dtype = complex)
+	[correlationGrid,meanxGrid] = CorrelationGridMPSFixedTime(Op1,Op2,gammaVector,lambdaVector)
+	correlationGridTime[0] = correlationGrid 
+	meanxGridTime[0] = meanxGrid
+
+	# Time evolution
+	currentStoreIndex=1;
+	for q in range(1,nt): # The first element was already settled
+
+		error = 0
+
+		# Series of propagations: Forrest-T formula
+
+		# Odd
+		for i in range(int(nsites/2)):
+		    site = 2*i
+		    [gammaVector[site],lambdaVector[site+1],gammaVector[site+1],schmidtError]\
+		    = EvolutionSite(expH1List[site],site,gammaVector,lambdaVector)
+		    error += schmidtError
+		# Even
+		for i in range(int((nsites-1)/2)):
+		    site = 2*i+1
+		    [gammaVector[site],lambdaVector[site+1],gammaVector[site+1],schmidtError]\
+		    = EvolutionSite(expH2List[site],site,gammaVector,lambdaVector)
+		    error += schmidtError
+		# Odd
+		for i in range(int(nsites/2)):
+		    site = 2*i
+		    [gammaVector[site],lambdaVector[site+1],gammaVector[site+1],schmidtError]\
+		    = EvolutionSite(expH3List[site],site,gammaVector,lambdaVector)
+		    error += schmidtError
+		# Even
+		for i in range(int((nsites-1)/2)):
+		    site = 2*i+1
+		    [gammaVector[site],lambdaVector[site+1],gammaVector[site+1],schmidtError]\
+		    = EvolutionSite(expH4List[site],site,gammaVector,lambdaVector)
+		    error += schmidtError
+		# Odd
+		for i in range(int(nsites/2)):
+		    site = 2*i
+		    [gammaVector[site],lambdaVector[site+1],gammaVector[site+1],schmidtError]\
+		    = EvolutionSite(expH3List[site],site,gammaVector,lambdaVector)
+		    error += schmidtError
+		# Even
+		for i in range(int((nsites-1)/2)):
+		    site = 2*i+1
+		    [gammaVector[site],lambdaVector[site+1],gammaVector[site+1],schmidtError]\
+		    = EvolutionSite(expH2List[site],site,gammaVector,lambdaVector)
+		    error += schmidtError
+		# Odd
+		for i in range(int(nsites/2)):
+		    site = 2*i
+		    [gammaVector[site],lambdaVector[site+1],gammaVector[site+1],schmidtError]\
+		    = EvolutionSite(expH1List[site],site,gammaVector,lambdaVector)
+		    error += schmidtError
+
+		if q == nstoreindex[currentStoreIndex]:
+		    # Compute the corresponding correlator!
+		    [correlationGrid,meanxGrid] = CorrelationGridMPSFixedTime(Op1,Op2,gammaVector,lambdaVector)
+		    correlationGridTime[currentStoreIndex] = correlationGrid
+		    meanxGridTime[currentStoreIndex] = meanxGrid
+		    errorTime.append(error)
+		    currentStoreIndex+=1 
+		    
+		# Update the Hamiltonian if there is a time dependence
+		if paramtVector[q] != 0:
+			Hintsite = AddLocalH(paramtVector[q]*HlocalTime,siteLocalH,Hstat,dvector)
+
+			expH1List = []
+			for site in range(nsites-1):
+				matrixExp = expm(-1j*dt/2*thetaCons*Hintsite[site])
+				expH1List.append(matrixExp)
+
+			expH2List = []
+			for site in range(nsites-1):
+				matrixExp = expm(-1j*dt*thetaCons*Hintsite[site])
+				expH2List.append(matrixExp)
+
+			expH3List = []
+			for site in range(nsites-1):
+				matrixExp = expm(-1j*dt/2*(1-thetaCons)*Hintsite[site])
+				expH3List.append(matrixExp)
+
+			expH4List = []
+			for site in range(nsites-1):
+				matrixExp = expm(-1j*dt*(1-2*thetaCons)*Hintsite[site])
+				expH4List.append(matrixExp)        
+
+	return [correlationGridTime,meanxGridTime,errorTime,gammaVector,lambdaVector]
 
 
 
