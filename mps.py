@@ -192,7 +192,8 @@ def RhoSite(site,lambdaVector,gammaVector):
     return rho
     
 def LocalPopulation(operator,site,lambdaVector,gammaVector):
-	np.trace(dot(operator,RhoSite(site,lambdaVector,gammaVector))
+	return np.trace(dot(operator,RhoSite(site,lambdaVector,gammaVector)))
+	
 	
 
 def AB(site,lambdaVector,gammaVector,P,Gk):
