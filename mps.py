@@ -190,6 +190,10 @@ def RhoSite(site,lambdaVector,gammaVector):
             rho = rho + (lambdaVector[site][alpha1])**2*(lambdaVector[site+1][alpha2])**2*dot(transpose(gammaMatrix),conjugate(gammaMatrix))
 
     return rho
+    
+def LocalPopulation(operator,site,lambdaVector,gammaVector):
+	np.trace(dot(operator,RhoSite(site,lambdaVector,gammaVector))
+	
 
 def AB(site,lambdaVector,gammaVector,P,Gk):
     dim = gammaVector[site].shape
