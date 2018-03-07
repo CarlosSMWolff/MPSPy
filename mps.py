@@ -755,7 +755,7 @@ def MPSTimeEvolutionCorrelationHT(lambdaVectorIni,gammaVectorIni,Hstat,HlocalTim
 
 
 def QHahn(k,n,N):
-	return float(hyp3f2(-k,k+2,-n,2,-N,1))
+	return float(hyp3f2(-k,k+2,-n,2,-N,0.9999999999999999))
 
 def rhon2(n,N):
     return float(((-1)**n * rf(n+2,N+1)*rf(1,n)*fac(n))/((2*n+2)*fac(1+n)*rf(-N,n)*fac(N)))
